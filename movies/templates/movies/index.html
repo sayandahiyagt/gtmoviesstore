@@ -39,6 +39,60 @@
       </div>
       {% endfor %}
     </div>
+    <!-- ===== Movie Requests section ===== -->
+    <div class="row mt-5">
+      <div class="col mx-auto mb-3">
+        <h3>Movie Requests</h3>
+        <hr />
+        {% if user.is_authenticated %}
+          <!-- Create new request -->
+          <div class="card mb-4">
+            <div class="card-body">
+              <form method="POST" action="{% url 'movies.create_request' %}">
+                {% csrf_token %}
+                <div class="row g-2">
+                  <div class="col-md-4">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" class="form-control" placeholder="Movie title" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Description</label>
+                    <input type="text" name="description" class="form-control" placeholder="Why should we add it? (optional)">
+                  </div>
+                  <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn bg-dark text-white w-100">Submit Request</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- User's existing requests -->
+          {% if template_data.my_requests %}
+            <div class="row">
+              {% for req in template_data.my_requests %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                  <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                      <h5 class="card-title mb-2">{{ req.title }}</h5>
+                      <p class="card-text flex-grow-1">{{ req.description|default:"(No description)" }}</p>
+                      <form method="POST" action="{% url 'movies.delete_request' req_id=req.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-muted">You haven’t made any requests yet.</p>
+          {% endif %}
+        {% else %}
+          <p class="text-muted">Please <a href="{% url 'login' %}">log in</a> to submit and view your movie requests.</p>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 {% endblock content %}

@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review
+from .models import Movie, Review, MovieRequest
 from django.contrib.auth.decorators import login_required
-
 
 
 def index(request):
@@ -13,8 +12,15 @@ def index(request):
     template_data = {}
     template_data['title'] = 'Movies'
     template_data['movies'] = movies
-    return render(request, 'movies/index.html',
-                  {'template_data': template_data})
+
+    if request.user.is_authenticated:
+        template_data['my_requests'] = MovieRequest.objects.filter(
+            user=request.user
+        ).order_by('-date')
+    else:
+        template_data['my_requests'] = []
+
+    return render(request, 'movies/index.html', {'template_data': template_data})
 
 
 def show(request, id):
@@ -29,7 +35,7 @@ def show(request, id):
 
 @login_required
 def create_review(request, id):
-    if request.method == 'POST' and request.POST['comment']!= '':
+    if request.method == 'POST' and request.POST['comment'] != '':
         movie = Movie.objects.get(id=id)
         review = Review()
         review.comment = request.POST['comment']
@@ -39,6 +45,7 @@ def create_review(request, id):
         return redirect('movies.show', id=id)
     else:
         return redirect('movies.show', id=id)
+
 
 @login_required
 def edit_review(request, id, review_id):
@@ -50,7 +57,7 @@ def edit_review(request, id, review_id):
         template_data['title'] = 'Edit Review'
         template_data['review'] = review
         return render(request, 'movies/edit_review.html',
-            {'template_data': template_data})
+                      {'template_data': template_data})
     elif request.method == 'POST' and request.POST['comment'] != '':
         review = Review.objects.get(id=review_id)
         review.comment = request.POST['comment']
@@ -65,3 +72,26 @@ def delete_review(request, id, review_id):
     review = get_object_or_404(Review, id=review_id, user=request.user)
     review.delete()
     return redirect('movies.show', id=id)
+
+
+@login_required
+def create_movie_request(request):
+    if request.method == 'POST':
+        title = (request.POST.get('title') or '').strip()
+        description = (request.POST.get('description') or '').strip()
+        if title:
+            MovieRequest.objects.create(
+                title=title,
+                description=description,
+                user=request.user
+            )
+        return redirect('movies.index')
+    return redirect('movies.index')
+
+
+@login_required
+def delete_movie_request(request, req_id):
+    mr = get_object_or_404(MovieRequest, id=req_id, user=request.user)
+    if request.method == 'POST':
+        mr.delete()
+    return redirect('movies.index')
