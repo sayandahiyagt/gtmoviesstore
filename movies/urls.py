@@ -10,4 +10,7 @@ urlpatterns = [
     path('<int:id>/review/<int:review_id>/delete/', views.delete_review, name='movies.delete_review'),
     path('requests/create/', views.create_movie_request, name='movies.create_request'),
     path('requests/<int:req_id>/delete/', views.delete_movie_request, name='movies.delete_request'),
+    path('petitions/', views.petitions_index, name='petitions.index'),
+    path('petitions/new/', views.petitions_create, name='petitions.create'),
+    path('petitions/<int:id>/vote/', views.petitions_vote, name='petitions.vote'),
 ]

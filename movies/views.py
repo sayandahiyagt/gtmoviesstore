@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, MovieRequest
+from .models import Movie, Review, MovieRequest, Petition, PetitionVote
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.contrib import messages
 
 
 def index(request):
@@ -95,3 +97,60 @@ def delete_movie_request(request, req_id):
     if request.method == 'POST':
         mr.delete()
     return redirect('movies.index')
+
+
+def petitions_index(request):
+    """Public page listing all petitions and their vote totals."""
+    petitions = Petition.objects.order_by('-created_at').all()
+    template_data = {
+        'petitions': petitions,
+    }
+    return render(request, 'movies/petitions_index.html', {'template_data': template_data})
+
+
+@login_required
+def petitions_create(request):
+    """Create a new petition (auth required)."""
+    if request.method == 'POST':
+        title = (request.POST.get('title') or '').strip()
+        description = (request.POST.get('description') or '').strip()
+        if not title:
+            messages.error(request, 'Title is required.')
+            return redirect('petitions.create')
+        Petition.objects.create(
+            title=title,
+            description=description,
+            created_by=request.user
+        )
+        messages.success(request, 'Your petition was created.')
+        return redirect('petitions.index')
+    return render(request, 'movies/petitions_create.html', {})
+
+
+@login_required
+def petitions_vote(request, id):
+    """Cast a YES/NO vote. If user already voted, we update their vote."""
+    if request.method != 'POST':
+        return redirect('petitions.index')
+
+    petition = get_object_or_404(Petition, id=id)
+    vote_str = request.POST.get('vote')
+    if vote_str not in ('yes', 'no'):
+        messages.error(request, 'Invalid vote.')
+        return redirect('petitions.index')
+
+    vote_bool = (vote_str == 'yes')
+
+    obj, created = PetitionVote.objects.get_or_create(
+        petition=petition,
+        user=request.user,
+        defaults={'vote': vote_bool}
+    )
+    if not created:
+        # Update existing vote if changed
+        if obj.vote != vote_bool:
+            obj.vote = vote_bool
+            obj.save(update_fields=['vote'])
+
+    messages.success(request, f'Your vote has been {"recorded" if created else "updated"}.')
+    return redirect('petitions.index')

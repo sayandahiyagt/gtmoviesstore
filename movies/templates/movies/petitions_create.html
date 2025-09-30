@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-3">
+  <div class="container">
+    <div class="row mt-3">
+      <div class="col-md-8 mx-auto mb-3">
+        <h2>New Petition</h2>
+        <hr />
+        <form method="POST" action="{% url 'petitions.create' %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="title" class="form-label">Movie / Petition Title</label>
+            <input type="text" id="title" name="title" required class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label for="description" class="form-label">Why should we include it?</label>
+            <textarea id="description" name="description" class="form-control" rows="4"></textarea>
+          </div>
+          <div class="text-start">
+            <button type="submit" class="btn bg-dark text-white">Create Petition</button>
+            <a href="{% url 'petitions.index' %}" class="btn btn-link">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
