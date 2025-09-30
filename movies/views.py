@@ -131,7 +131,7 @@ def create_petition(request):
         petition.created_by = request.user
         petition.save()
         messages.success(request, "Petition created! You can share it for votes.")
-    return redirect('movies.petition_index')
+    return redirect('movies.petition.petition_index')
 
 
 @login_required
@@ -143,7 +143,7 @@ def vote_yes(request, pk):
         messages.success(request, "Vote recorded. Thanks!")
     except IntegrityError:
         messages.info(request, "You've already voted on this petition.")
-    return redirect("movies.petition_index")
+    return redirect("movies.petition.petition_index")
 
 @login_required
 @require_POST
@@ -154,7 +154,7 @@ def unvote(request, pk):
         messages.success(request, "Your vote was removed.")
     except PetitionVote.DoesNotExist:
         messages.info(request, "You haven't voted on this petition yet.")
-    return redirect("movies.petition_index")
+    return redirect("movies.petition.petition_index")
 
 
 
