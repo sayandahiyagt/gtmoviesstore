@@ -1,7 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Movie, Review, MovieRequest
+from .models import Movie, Review, MovieRequest, Petition, PetitionVote
 from django.contrib.auth.decorators import login_required
-
+from django.contrib import messages
+from django.db import IntegrityError
+from django.db.models import Count, Q
+from django.views.decorators.http import require_POST
+from django.http import HttpResponseBadRequest, HttpResponseForbidden
+from .forms import PetitionForm
 
 def index(request):
     search_term = request.GET.get('search')
@@ -95,3 +100,61 @@ def delete_movie_request(request, req_id):
     if request.method == 'POST':
         mr.delete()
     return redirect('movies.index')
+
+@login_required
+def petition_index(request):
+    # list all petitions with public visibility
+    petitions = (
+        Petition.objects
+        .annotate(
+            yes_count=Count("votes", filter=Q(votes__is_yes=True)),
+            no_count=Count("votes", filter=Q(votes__is_yes=False)),
+            total_votes=Count("votes"),
+        )
+        .select_related("created_by")
+    )
+
+
+    form = PetitionForm()
+    return render(
+    request,
+    "movies/petition_index.html",
+    {"petitions": petitions, "form": form},
+    )
+
+@login_required
+@require_POST
+def create_petition(request):
+    form = PetitionForm(request.POST)
+    if form.is_valid():
+        petition = form.save(commit=False)
+        petition.created_by = request.user
+        petition.save()
+        messages.success(request, "Petition created! You can share it for votes.")
+    return redirect('movies.petition_index')
+
+
+@login_required
+@require_POST
+def vote_yes(request, pk):
+    petition = get_object_or_404(Petition, pk=pk)
+    try:
+        PetitionVote.objects.create(petition=petition, user=request.user, is_yes=True)
+        messages.success(request, "Vote recorded. Thanks!")
+    except IntegrityError:
+        messages.info(request, "You've already voted on this petition.")
+    return redirect("movies.petition_index")
+
+@login_required
+@require_POST
+def unvote(request, pk):
+    petition = get_object_or_404(Petition, pk=pk)
+    try:
+        PetitionVote.objects.get(petition=petition, user=request.user).delete()
+        messages.success(request, "Your vote was removed.")
+    except PetitionVote.DoesNotExist:
+        messages.info(request, "You haven't voted on this petition yet.")
+    return redirect("movies.petition_index")
+
+
+
